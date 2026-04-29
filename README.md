@@ -1,0 +1,76 @@
+# aej-dlt
+
+`aej-dlt` loads raw source content from
+[`kingfink/analytics-engineering-jobs`](https://github.com/kingfink/analytics-engineering-jobs)
+into BigQuery with [`dlt`](https://dlthub.com/).
+
+The pipeline currently loads two tables:
+
+- `jobs`
+- `organizations`
+
+Both tables use the same row shape:
+
+- `file_path`
+- `frontmatter` as a BigQuery JSON column
+- `content` as everything after the frontmatter block
+- `created_at` from the oldest git history entry for the file
+- `modified_at` from the newest git history entry for the file
+
+Source files are discovered and opened with dlt's filesystem source. Provider
+or filesystem mtimes are intentionally ignored because fresh clones would make
+checkout time look like content change time.
+
+## Local Development
+
+Install the package and dev dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run tests:
+
+```bash
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+```
+
+## Local Sync
+
+Clone or update the source repo, then run:
+
+```bash
+export BIGQUERY_PROJECT=my-gcp-project
+export BIGQUERY_DATASET=analytics_engineering_jobs
+export BIGQUERY_LOCATION=US
+
+aej-dlt --repo-root /path/to/analytics-engineering-jobs
+```
+
+Authenticate locally with Application Default Credentials or
+`GOOGLE_APPLICATION_CREDENTIALS`.
+
+The sync uses `file_path` as the primary key, git-derived `modified_at` as the
+incremental cursor, and dlt `merge` write disposition so changed files are
+upserted on later runs. Deletions are not hard-deleted in v1.
+
+## Modal
+
+The Modal app is defined in `src/aej_dlt/modal_sync_bigquery.py`. It clones the
+source repo fresh on every run, then calls the same sync code.
+
+Create a `bigquery-sync` Modal secret with BigQuery destination credentials and:
+
+- `BIGQUERY_PROJECT`
+- `BIGQUERY_DATASET`
+- optional `BIGQUERY_LOCATION`
+- optional `AEJ_REPO_URL`, defaults to `https://github.com/kingfink/analytics-engineering-jobs.git`
+- optional `AEJ_REF`, defaults to `master`
+
+Deploy the scheduled sync:
+
+```bash
+modal deploy src/aej_dlt/modal_sync_bigquery.py
+```

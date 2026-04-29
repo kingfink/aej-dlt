@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=65.6.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aej-dlt"
+version = "0.1.0"
+description = "dlt pipelines for Analytics Engineering Jobs source content."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dlt[bigquery]==1.26.0",
+    "modal==1.2.5",
+    "pyyaml==6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[project.scripts]
+aej-dlt = "aej_dlt.sync_bigquery:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+ignore = [
+    "E501",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
