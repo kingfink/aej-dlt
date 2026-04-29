@@ -11,6 +11,7 @@ import modal
 
 APP_NAME = "aej-bigquery-sync"
 SECRET_NAME = "aej-dlt-bq-sync"
+GITHUB_TOKEN_ENV = "AEJ_GITHUB_TOKEN"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
 DEFAULT_REF = "master"
 SOURCE_ROOT = Path(__file__).resolve().parent.parent
@@ -50,9 +51,43 @@ def _sync_from_fresh_clone(*, full_refresh: bool):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         repo_path = Path(tmpdir) / "analytics-engineering-jobs"
-        subprocess.run(["git", "clone", repo_url, str(repo_path)], check=True)
+        _clone_repo(repo_url, repo_path, github_token=os.environ.get(GITHUB_TOKEN_ENV))
         subprocess.run(["git", "checkout", ref], cwd=repo_path, check=True)
 
         from aej_dlt.sync_bigquery import sync_bigquery
 
         return str(sync_bigquery(repo_path, full_refresh=full_refresh))
+
+
+def _clone_repo(
+    repo_url: str,
+    repo_path: Path,
+    *,
+    github_token: str | None = None,
+    run_command=subprocess.run,
+) -> None:
+    if not github_token:
+        run_command(["git", "clone", repo_url, str(repo_path)], check=True)
+        return
+
+    with tempfile.TemporaryDirectory() as askpass_dir:
+        askpass_path = Path(askpass_dir) / "github-askpass.sh"
+        askpass_path.write_text(
+            "#!/bin/sh\n"
+            'case "$1" in\n'
+            "  *Username*) printf '%s\\n' x-access-token ;;\n"
+            "  *) printf '%s\\n' \"$AEJ_GITHUB_TOKEN\" ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        askpass_path.chmod(0o700)
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "GIT_ASKPASS": str(askpass_path),
+                "GIT_TERMINAL_PROMPT": "0",
+                GITHUB_TOKEN_ENV: github_token,
+            }
+        )
+        run_command(["git", "clone", repo_url, str(repo_path)], check=True, env=env)
