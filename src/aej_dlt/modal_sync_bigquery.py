@@ -19,7 +19,12 @@ SOURCE_ROOT = Path(__file__).resolve().parent.parent
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git")
-    .pip_install("dlt[bigquery]==1.26.0", "modal==1.2.5", "pyyaml==6.0.2")
+    .pip_install(
+        "dlt[bigquery]==1.26.0",
+        "google-cloud-bigquery-storage==2.37.0",
+        "modal==1.2.5",
+        "pyyaml==6.0.2",
+    )
     .add_local_dir(
         SOURCE_ROOT / "aej_dlt",
         remote_path="/root/aej_dlt",
