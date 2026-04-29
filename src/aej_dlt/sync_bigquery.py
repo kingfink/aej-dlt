@@ -11,6 +11,7 @@ from aej_dlt.warehouse import GitTimestampResolver, build_file_item_rows
 
 PIPELINE_NAME = "aej_repo_content"
 INCREMENTAL_INITIAL_VALUE = "1970-01-01T00:00:00+00:00"
+BIGQUERY_PRIVATE_KEY_ENV = "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
 
 RESOURCE_COLUMNS = {
     "file_path": {"data_type": "text"},
@@ -53,6 +54,7 @@ def sync_rows(
     importing dlt or contacting BigQuery.
     """
     dlt_module = dlt_module or importlib.import_module("dlt")
+    _normalize_bigquery_private_key_env()
     project = _required_env("BIGQUERY_PROJECT")
     dataset = _required_env("BIGQUERY_DATASET")
     location = os.environ.get("BIGQUERY_LOCATION")
@@ -139,6 +141,12 @@ def _incremental_resource(dlt_module, table_name: str, file_items, timestamp_res
 
 def _filesystem_resource():
     return importlib.import_module("dlt.sources.filesystem").filesystem
+
+
+def _normalize_bigquery_private_key_env() -> None:
+    private_key = os.environ.get(BIGQUERY_PRIVATE_KEY_ENV)
+    if private_key and "\\n" in private_key:
+        os.environ[BIGQUERY_PRIVATE_KEY_ENV] = private_key.replace("\\n", "\n")
 
 
 def _required_env(name: str) -> str:

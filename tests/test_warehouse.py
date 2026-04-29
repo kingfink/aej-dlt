@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from datetime import date
 from io import StringIO
@@ -343,6 +344,45 @@ def test_sync_rows_can_request_drop_data_refresh(monkeypatch) -> None:
     )
 
     assert dlt.pipeline_instance.run_call["refresh"] == "drop_data"
+
+
+def test_sync_rows_normalizes_escaped_bigquery_private_key(monkeypatch) -> None:
+    escaped_private_key = (
+        r"-----BEGIN PRIVATE KEY-----\n"
+        r"abc123\n"
+        r"-----END PRIVATE KEY-----\n"
+    )
+    monkeypatch.setenv("BIGQUERY_PROJECT", "warehouse-project")
+    monkeypatch.setenv("BIGQUERY_DATASET", "aej")
+    monkeypatch.setenv(
+        "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY",
+        escaped_private_key,
+    )
+    dlt = FakeDlt()
+    filesystem = FakeFilesystem(
+        {
+            "docs/jobs/**/*.md": [
+                FakeFileItem("docs/jobs/acme/role.md", "---\ntitle: Role\n---\n")
+            ],
+            "docs/organizations/*.md": [
+                FakeFileItem("docs/organizations/acme.md", "---\ntitle: Acme\n---\n")
+            ],
+        }
+    )
+
+    sync_rows(
+        repo_root=Path("/repo"),
+        dlt_module=dlt,
+        filesystem_resource=filesystem,
+        timestamp_resolver=lambda path: FileTimestamps(
+            created_at="2025-01-01T00:00:00+00:00",
+            modified_at="2026-01-01T00:00:00+00:00",
+        ),
+    )
+
+    assert os.environ["DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"] == (
+        "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----\n"
+    )
 
 
 def _write_markdown(path, content: str) -> None:

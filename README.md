@@ -97,6 +97,8 @@ destination credentials:
 For a Google service account JSON file, copy the individual field values into
 the Modal secret. Use the JSON's `private_key` value for
 `DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY`, not the full JSON document.
+The private key may use escaped `\n` sequences from the JSON file; the app
+converts them to PEM newlines before connecting to BigQuery.
 
 Deploy the scheduled sync:
 
