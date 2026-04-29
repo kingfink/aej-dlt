@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -131,6 +131,7 @@ def build_markdown_row(
         "content": document.content,
         "created_at": timestamps.created_at,
         "modified_at": timestamps.modified_at,
+        "modified_at_cursor": _modified_at_cursor(timestamps.modified_at, relative_path),
     }
 
 
@@ -155,3 +156,12 @@ def _json_safe(value):
     if isinstance(value, date):
         return value.isoformat()
     return value
+
+
+def _modified_at_cursor(modified_at: str, relative_path: Path) -> str:
+    timestamp = modified_at.replace("Z", "+00:00")
+    modified_datetime = datetime.fromisoformat(timestamp)
+    if modified_datetime.tzinfo is None:
+        modified_datetime = modified_datetime.replace(tzinfo=UTC)
+    normalized_timestamp = modified_datetime.astimezone(UTC).isoformat(timespec="microseconds")
+    return f"{normalized_timestamp}|{relative_path.as_posix()}"

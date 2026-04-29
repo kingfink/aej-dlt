@@ -17,6 +17,7 @@ from aej_dlt.warehouse import (
     FileTimestamps,
     GitTimestampResolver,
     build_job_rows,
+    build_markdown_row,
     build_organization_rows,
 )
 
@@ -120,7 +121,7 @@ def test_build_job_rows_are_sorted_and_json_safe(tmp_path) -> None:
         tmp_path,
         timestamp_resolver=lambda path: FileTimestamps(
             created_at=f"created:{path.as_posix()}",
-            modified_at=f"modified:{path.as_posix()}",
+            modified_at="2026-01-01T00:00:00+00:00",
         ),
     )
 
@@ -130,14 +131,16 @@ def test_build_job_rows_are_sorted_and_json_safe(tmp_path) -> None:
             "frontmatter": {"title": "First", "tags": ["dbt"]},
             "content": "\nFirst body\n",
             "created_at": "created:docs/jobs/acme/a-first.md",
-            "modified_at": "modified:docs/jobs/acme/a-first.md",
+            "modified_at": "2026-01-01T00:00:00+00:00",
+            "modified_at_cursor": "2026-01-01T00:00:00.000000+00:00|docs/jobs/acme/a-first.md",
         },
         {
             "file_path": "docs/jobs/acme/z-last.md",
             "frontmatter": {"title": "Last", "date": "2026-04-22"},
             "content": "\nLast body\n",
             "created_at": "created:docs/jobs/acme/z-last.md",
-            "modified_at": "modified:docs/jobs/acme/z-last.md",
+            "modified_at": "2026-01-01T00:00:00+00:00",
+            "modified_at_cursor": "2026-01-01T00:00:00.000000+00:00|docs/jobs/acme/z-last.md",
         },
     ]
 
@@ -164,8 +167,26 @@ def test_build_organization_rows_skip_index_and_use_same_shape(tmp_path) -> None
             "content": "\nOrg body\n",
             "created_at": "2025-01-01T00:00:00+00:00",
             "modified_at": "2026-01-01T00:00:00+00:00",
+            "modified_at_cursor": "2026-01-01T00:00:00.000000+00:00|docs/organizations/acme.md",
         }
     ]
+
+
+def test_build_markdown_row_adds_unique_incremental_cursor() -> None:
+    row = build_markdown_row(
+        Path("docs/jobs/acme/analytics-engineer.md"),
+        "---\ntitle: Analytics Engineer\n---\nJob body\n",
+        timestamp_resolver=lambda path: FileTimestamps(
+            created_at="2025-01-01T00:00:00+00:00",
+            modified_at="2026-01-01T03:04:05-05:00",
+        ),
+    )
+
+    assert row["modified_at"] == "2026-01-01T03:04:05-05:00"
+    assert (
+        row["modified_at_cursor"]
+        == "2026-01-01T08:04:05.000000+00:00|docs/jobs/acme/analytics-engineer.md"
+    )
 
 
 def test_build_dlt_resources_configures_incremental_merge() -> None:
@@ -223,6 +244,7 @@ def test_build_dlt_resources_configures_incremental_merge() -> None:
                 "content": {"data_type": "text"},
                 "created_at": {"data_type": "timestamp"},
                 "modified_at": {"data_type": "timestamp"},
+                "modified_at_cursor": {"data_type": "text"},
             },
         },
         {
@@ -235,18 +257,19 @@ def test_build_dlt_resources_configures_incremental_merge() -> None:
                 "content": {"data_type": "text"},
                 "created_at": {"data_type": "timestamp"},
                 "modified_at": {"data_type": "timestamp"},
+                "modified_at_cursor": {"data_type": "text"},
             },
         },
     ]
     assert dlt.sources.incremental_calls == [
         {
-            "cursor_path": "modified_at",
-            "initial_value": "1970-01-01T00:00:00+00:00",
+            "cursor_path": "modified_at_cursor",
+            "initial_value": "1970-01-01T00:00:00.000000+00:00|",
             "row_order": "asc",
         },
         {
-            "cursor_path": "modified_at",
-            "initial_value": "1970-01-01T00:00:00+00:00",
+            "cursor_path": "modified_at_cursor",
+            "initial_value": "1970-01-01T00:00:00.000000+00:00|",
             "row_order": "asc",
         },
     ]
@@ -257,6 +280,7 @@ def test_build_dlt_resources_configures_incremental_merge() -> None:
             "content": "\nOld body\n",
             "created_at": "created:docs/jobs/acme/old.md",
             "modified_at": "2026-01-01",
+            "modified_at_cursor": "2026-01-01T00:00:00.000000+00:00|docs/jobs/acme/old.md",
         },
         {
             "file_path": "docs/jobs/acme/new.md",
@@ -264,6 +288,7 @@ def test_build_dlt_resources_configures_incremental_merge() -> None:
             "content": "\nNew body\n",
             "created_at": "created:docs/jobs/acme/new.md",
             "modified_at": "2026-01-03",
+            "modified_at_cursor": "2026-01-03T00:00:00.000000+00:00|docs/jobs/acme/new.md",
         },
     ]
     assert list(resources[1]()) == [
@@ -273,6 +298,7 @@ def test_build_dlt_resources_configures_incremental_merge() -> None:
             "content": "\nOrg body\n",
             "created_at": "created:docs/organizations/acme.md",
             "modified_at": "2026-01-01",
+            "modified_at_cursor": "2026-01-01T00:00:00.000000+00:00|docs/organizations/acme.md",
         }
     ]
 

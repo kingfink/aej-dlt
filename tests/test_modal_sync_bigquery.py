@@ -5,9 +5,11 @@ from __future__ import annotations
 import ast
 import importlib.util
 import sys
+import tomllib
 from pathlib import Path
 
 MODAL_ENTRYPOINT_PATH = Path("src/aej_dlt/modal_sync_bigquery.py")
+PYPROJECT_PATH = Path("pyproject.toml")
 
 
 def test_modal_entrypoint_uses_aej_dlt_bigquery_secret() -> None:
@@ -68,6 +70,21 @@ def test_clone_repo_uses_git_askpass_for_github_token(monkeypatch, tmp_path) -> 
         str(tmp_path / "analytics-engineering-jobs"),
     ]
     assert calls[0]["check"] is True
+
+
+def test_bigquery_storage_dependency_is_available_in_package_and_modal_image() -> None:
+    pyproject = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
+    dependencies = pyproject["project"]["dependencies"]
+
+    tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
+    modal_packages = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr == "pip_install":
+                modal_packages.extend(ast.literal_eval(arg) for arg in node.args)
+
+    assert "google-cloud-bigquery-storage==2.37.0" in dependencies
+    assert "google-cloud-bigquery-storage==2.37.0" in modal_packages
 
 
 def _has_app_decorator(node: ast.FunctionDef, decorator_name: str) -> bool:

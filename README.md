@@ -16,6 +16,8 @@ Both tables use the same row shape:
 - `content` as everything after the frontmatter block
 - `created_at` from the oldest git history entry for the file
 - `modified_at` from the newest git history entry for the file
+- `modified_at_cursor` as an internal, unique incremental cursor derived from
+  `modified_at` and `file_path`
 
 Source files are discovered and opened with dlt's filesystem source. Provider
 or filesystem mtimes are intentionally ignored because fresh clones would make
@@ -66,9 +68,9 @@ aej-dlt --repo-root /path/to/analytics-engineering-jobs
 Authenticate locally with Application Default Credentials or
 `GOOGLE_APPLICATION_CREDENTIALS`.
 
-The sync uses `file_path` as the primary key, git-derived `modified_at` as the
-incremental cursor, and dlt `merge` write disposition so changed files are
-upserted on later runs. Deletions are not hard-deleted in v1.
+The sync uses `file_path` as the primary key, git-derived `modified_at_cursor`
+as the incremental cursor, and dlt `merge` write disposition so changed files
+are upserted on later runs. Deletions are not hard-deleted in v1.
 
 To truncate the destination tables and reset incremental state before syncing:
 

@@ -10,7 +10,8 @@ from pathlib import Path
 from aej_dlt.warehouse import GitTimestampResolver, build_file_item_rows
 
 PIPELINE_NAME = "aej_repo_content"
-INCREMENTAL_INITIAL_VALUE = "1970-01-01T00:00:00+00:00"
+INCREMENTAL_CURSOR_FIELD = "modified_at_cursor"
+INCREMENTAL_INITIAL_VALUE = "1970-01-01T00:00:00.000000+00:00|"
 BIGQUERY_PRIVATE_KEY_ENV = "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
 
 RESOURCE_COLUMNS = {
@@ -19,6 +20,7 @@ RESOURCE_COLUMNS = {
     "content": {"data_type": "text"},
     "created_at": {"data_type": "timestamp"},
     "modified_at": {"data_type": "timestamp"},
+    INCREMENTAL_CURSOR_FIELD: {"data_type": "text"},
 }
 
 
@@ -124,7 +126,7 @@ def _incremental_resource(dlt_module, table_name: str, file_items, timestamp_res
     )
     def markdown_rows(
         modified_at=dlt_module.sources.incremental(  # noqa: B008
-            "modified_at",
+            INCREMENTAL_CURSOR_FIELD,
             initial_value=INCREMENTAL_INITIAL_VALUE,
             row_order="asc",
         ),
@@ -132,7 +134,7 @@ def _incremental_resource(dlt_module, table_name: str, file_items, timestamp_res
         del modified_at
         ordered_rows = sorted(
             build_file_item_rows(file_items, timestamp_resolver),
-            key=lambda row: (str(row["modified_at"]), str(row["file_path"])),
+            key=lambda row: str(row[INCREMENTAL_CURSOR_FIELD]),
         )
         yield from ordered_rows
 
