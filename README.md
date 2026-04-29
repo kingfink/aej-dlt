@@ -37,6 +37,20 @@ python -m ruff check .
 python -m ruff format --check .
 ```
 
+## CI/CD
+
+GitHub Actions runs linting, formatting, and tests on pull requests targeting
+`master` and on pushes to `master`.
+
+Pushes to `master` deploy the Modal app after validation passes. Configure these
+GitHub repository secrets before relying on automated deploys:
+
+- `MODAL_TOKEN_ID`
+- `MODAL_TOKEN_SECRET`
+
+The deployed Modal app still reads BigQuery credentials and sync settings from
+the `bigquery-sync` Modal secret described below.
+
 ## Local Sync
 
 Clone or update the source repo, then run:
