@@ -23,7 +23,7 @@ GitHub Actions must provide:
 - `MODAL_TOKEN_ID`
 - `MODAL_TOKEN_SECRET`
 
-The deployed Modal app will continue to use the existing `bigquery-sync` Modal secret for BigQuery credentials.
+The deployed Modal app will use the `aej-dlt-bq-sync` Modal secret for BigQuery credentials.
 
 ## Testing
 

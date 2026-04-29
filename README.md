@@ -49,7 +49,7 @@ GitHub repository secrets before relying on automated deploys:
 - `MODAL_TOKEN_SECRET`
 
 The deployed Modal app still reads BigQuery credentials and sync settings from
-the `bigquery-sync` Modal secret described below.
+the `aej-dlt-bq-sync` Modal secret described below.
 
 ## Local Sync
 
@@ -75,13 +75,21 @@ upserted on later runs. Deletions are not hard-deleted in v1.
 The Modal app is defined in `src/aej_dlt/modal_sync_bigquery.py`. It clones the
 source repo fresh on every run, then calls the same sync code.
 
-Create a `bigquery-sync` Modal secret with BigQuery destination credentials and:
+Create an `aej-dlt-bq-sync` Modal secret with sync settings and BigQuery
+destination credentials:
 
 - `BIGQUERY_PROJECT`
 - `BIGQUERY_DATASET`
 - optional `BIGQUERY_LOCATION`
 - optional `AEJ_REPO_URL`, defaults to `https://github.com/kingfink/analytics-engineering-jobs.git`
 - optional `AEJ_REF`, defaults to `master`
+- `DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID`
+- `DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL`
+- `DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY`
+
+For a Google service account JSON file, copy the individual field values into
+the Modal secret. Use the JSON's `private_key` value for
+`DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY`, not the full JSON document.
 
 Deploy the scheduled sync:
 
