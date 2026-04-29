@@ -27,6 +27,7 @@ def sync_bigquery(
     dlt_module=None,
     filesystem_resource=None,
     timestamp_resolver=None,
+    full_refresh: bool = False,
 ):
     """Sync repo markdown content from ``repo_root`` to BigQuery."""
     return sync_rows(
@@ -34,6 +35,7 @@ def sync_bigquery(
         dlt_module=dlt_module,
         filesystem_resource=filesystem_resource,
         timestamp_resolver=timestamp_resolver,
+        full_refresh=full_refresh,
     )
 
 
@@ -43,6 +45,7 @@ def sync_rows(
     dlt_module=None,
     filesystem_resource=None,
     timestamp_resolver=None,
+    full_refresh: bool = False,
 ):
     """Sync repo markdown rows to BigQuery.
 
@@ -63,6 +66,10 @@ def sync_rows(
         destination="bigquery",
         dataset_name=dataset,
     )
+    run_kwargs = {"loader_file_format": "jsonl"}
+    if full_refresh:
+        run_kwargs["refresh"] = "drop_data"
+
     return pipeline.run(
         build_dlt_resources(
             dlt_module,
@@ -70,7 +77,7 @@ def sync_rows(
             filesystem_resource=filesystem_resource or _filesystem_resource(),
             timestamp_resolver=timestamp_resolver,
         ),
-        loader_file_format="jsonl",
+        **run_kwargs,
     )
 
 
@@ -149,9 +156,14 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("."),
         help="Repository root containing docs/jobs and docs/organizations.",
     )
+    parser.add_argument(
+        "--full-refresh",
+        action="store_true",
+        help="Truncate loaded tables and reset incremental state before syncing.",
+    )
     args = parser.parse_args(argv)
 
-    load_info = sync_bigquery(args.repo_root)
+    load_info = sync_bigquery(args.repo_root, full_refresh=args.full_refresh)
     print(load_info)
     return 0
 

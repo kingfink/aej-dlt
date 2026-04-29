@@ -316,6 +316,35 @@ def test_sync_rows_configures_bigquery_pipeline_and_jsonl(monkeypatch) -> None:
     assert len(dlt.pipeline_instance.run_call["data"]) == 2
 
 
+def test_sync_rows_can_request_drop_data_refresh(monkeypatch) -> None:
+    monkeypatch.setenv("BIGQUERY_PROJECT", "warehouse-project")
+    monkeypatch.setenv("BIGQUERY_DATASET", "aej")
+    dlt = FakeDlt()
+    filesystem = FakeFilesystem(
+        {
+            "docs/jobs/**/*.md": [
+                FakeFileItem("docs/jobs/acme/role.md", "---\ntitle: Role\n---\n")
+            ],
+            "docs/organizations/*.md": [
+                FakeFileItem("docs/organizations/acme.md", "---\ntitle: Acme\n---\n")
+            ],
+        }
+    )
+
+    sync_rows(
+        repo_root=Path("/repo"),
+        dlt_module=dlt,
+        filesystem_resource=filesystem,
+        timestamp_resolver=lambda path: FileTimestamps(
+            created_at="2025-01-01T00:00:00+00:00",
+            modified_at="2026-01-01T00:00:00+00:00",
+        ),
+        full_refresh=True,
+    )
+
+    assert dlt.pipeline_instance.run_call["refresh"] == "drop_data"
+
+
 def _write_markdown(path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -340,11 +369,13 @@ class FakePipeline:
     def __init__(self) -> None:
         self.run_call = None
 
-    def run(self, data, *, loader_file_format):
+    def run(self, data, *, loader_file_format, refresh=None):
         self.run_call = {
             "data": data,
             "loader_file_format": loader_file_format,
         }
+        if refresh:
+            self.run_call["refresh"] = refresh
         return "loaded"
 
 
