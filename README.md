@@ -70,6 +70,12 @@ The sync uses `file_path` as the primary key, git-derived `modified_at` as the
 incremental cursor, and dlt `merge` write disposition so changed files are
 upserted on later runs. Deletions are not hard-deleted in v1.
 
+To truncate the destination tables and reset incremental state before syncing:
+
+```bash
+aej-dlt --repo-root /path/to/analytics-engineering-jobs --full-refresh
+```
+
 ## Modal
 
 The Modal app is defined in `src/aej_dlt/modal_sync_bigquery.py`. It clones the
@@ -95,4 +101,16 @@ Deploy the scheduled sync:
 
 ```bash
 modal deploy src/aej_dlt/modal_sync_bigquery.py
+```
+
+Run an on-demand sync without adding another deployed Modal function:
+
+```bash
+modal run src/aej_dlt/modal_sync_bigquery.py
+```
+
+Run an on-demand full refresh:
+
+```bash
+modal run src/aej_dlt/modal_sync_bigquery.py --full-refresh
 ```

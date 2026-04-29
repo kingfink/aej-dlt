@@ -34,26 +34,17 @@ app = modal.App(APP_NAME, image=image)
     secrets=[modal.Secret.from_name(SECRET_NAME)],
     timeout=3600,
 )
-def scheduled_sync():
+def scheduled_sync(full_refresh: bool = False):
     """Run the scheduled BigQuery sync from a fresh clone."""
-    return _sync_from_fresh_clone()
-
-
-@app.function(
-    secrets=[modal.Secret.from_name(SECRET_NAME)],
-    timeout=3600,
-)
-def sync_now():
-    """Run the BigQuery sync on demand from a fresh clone."""
-    return _sync_from_fresh_clone()
+    return _sync_from_fresh_clone(full_refresh=full_refresh)
 
 
 @app.local_entrypoint()
-def main():
-    print(sync_now.remote())
+def main(full_refresh: bool = False):
+    print(scheduled_sync.remote(full_refresh=full_refresh))
 
 
-def _sync_from_fresh_clone():
+def _sync_from_fresh_clone(*, full_refresh: bool):
     repo_url = os.environ.get("AEJ_REPO_URL", DEFAULT_REPO_URL)
     ref = os.environ.get("AEJ_REF", DEFAULT_REF)
 
@@ -64,4 +55,4 @@ def _sync_from_fresh_clone():
 
         from aej_dlt.sync_bigquery import sync_bigquery
 
-        return str(sync_bigquery(repo_path))
+        return str(sync_bigquery(repo_path, full_refresh=full_refresh))
