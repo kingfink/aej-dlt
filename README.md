@@ -89,7 +89,7 @@ destination credentials:
 - optional `BIGQUERY_LOCATION`
 - optional `AEJ_REPO_URL`, defaults to `https://github.com/kingfink/analytics-engineering-jobs.git`
 - optional `AEJ_REF`, defaults to `master`
-- `AEJ_GITHUB_TOKEN`, a GitHub token with read-only contents access to the source repo
+- `GITHUB_TOKEN_AEJ`, a GitHub token with read-only contents access to the source repo
 - `DESTINATION__BIGQUERY__CREDENTIALS__PROJECT_ID`
 - `DESTINATION__BIGQUERY__CREDENTIALS__CLIENT_EMAIL`
 - `DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY`

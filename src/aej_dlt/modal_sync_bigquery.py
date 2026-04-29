@@ -11,7 +11,7 @@ import modal
 
 APP_NAME = "aej-bigquery-sync"
 SECRET_NAME = "aej-dlt-bq-sync"
-GITHUB_TOKEN_ENV = "AEJ_GITHUB_TOKEN"
+GITHUB_TOKEN_ENV = "GITHUB_TOKEN_AEJ"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
 DEFAULT_REF = "master"
 SOURCE_ROOT = Path(__file__).resolve().parent.parent
@@ -76,7 +76,7 @@ def _clone_repo(
             "#!/bin/sh\n"
             'case "$1" in\n'
             "  *Username*) printf '%s\\n' x-access-token ;;\n"
-            "  *) printf '%s\\n' \"$AEJ_GITHUB_TOKEN\" ;;\n"
+            "  *) printf '%s\\n' \"$GITHUB_TOKEN_AEJ\" ;;\n"
             "esac\n",
             encoding="utf-8",
         )

@@ -50,7 +50,7 @@ def test_clone_repo_uses_git_askpass_for_github_token(monkeypatch, tmp_path) -> 
 
         assert askpass_path.exists()
         assert env["GIT_TERMINAL_PROMPT"] == "0"
-        assert env["AEJ_GITHUB_TOKEN"] == "super-secret-token"
+        assert env["GITHUB_TOKEN_AEJ"] == "super-secret-token"
         assert "super-secret-token" not in askpass_path.read_text(encoding="utf-8")
         assert "super-secret-token" not in " ".join(args)
 
