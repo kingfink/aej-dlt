@@ -10,7 +10,7 @@ from pathlib import Path
 import modal
 
 APP_NAME = "aej-bigquery-sync"
-SECRET_NAME = "bigquery-sync"
+SECRET_NAME = "aej-dlt-bq-sync"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
 DEFAULT_REF = "master"
 SOURCE_ROOT = Path(__file__).resolve().parent.parent
