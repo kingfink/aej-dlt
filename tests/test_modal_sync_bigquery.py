@@ -36,9 +36,9 @@ def test_modal_entrypoint_exposes_one_deployed_function_and_local_cli() -> None:
         node.name for node in functions.values() if _has_app_decorator(node, "local_entrypoint")
     ]
 
-    assert deployed_functions == ["scheduled_sync"]
+    assert deployed_functions == ["sync"]
     assert local_entrypoints == ["main"]
-    assert _boolean_default(functions["scheduled_sync"], "full_refresh") is False
+    assert _boolean_default(functions["sync"], "full_refresh") is False
     assert _boolean_default(functions["main"], "full_refresh") is False
 
 
