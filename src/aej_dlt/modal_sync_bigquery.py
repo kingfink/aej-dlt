@@ -40,14 +40,14 @@ app = modal.App(APP_NAME, image=image)
     secrets=[modal.Secret.from_name(SECRET_NAME)],
     timeout=3600,
 )
-def scheduled_sync(full_refresh: bool = False):
+def sync(full_refresh: bool = False):
     """Run the scheduled BigQuery sync from a fresh clone."""
     return _sync_from_fresh_clone(full_refresh=full_refresh)
 
 
 @app.local_entrypoint()
 def main(full_refresh: bool = False):
-    print(scheduled_sync.remote(full_refresh=full_refresh))
+    print(sync.remote(full_refresh=full_refresh))
 
 
 def _sync_from_fresh_clone(*, full_refresh: bool):
