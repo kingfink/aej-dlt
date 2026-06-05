@@ -16,6 +16,7 @@ def test_ci_cd_workflow_validates_prs_and_deploys_master() -> None:
         "pull_request": {"branches": ["master"]},
         "push": {"branches": ["master"]},
     }
+    assert workflow["permissions"] == {"contents": "read"}
 
     validate = workflow["jobs"]["validate"]
     assert validate["runs-on"] == "ubuntu-latest"

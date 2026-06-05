@@ -27,6 +27,12 @@ Markdown extraction is provided by
 [`tailor-made-dlt-sources`](https://github.com/kingfink/dlt-sources). This repo
 only configures the AEJ-specific `resource_globs` and BigQuery/Modal runtime.
 
+## Public Visibility
+
+This repository is public for source visibility only. It is not maintained as a
+community project and is not accepting outside contributions, pull requests,
+issues, or support requests.
+
 ## Local Development
 
 Install the package and dev dependencies:

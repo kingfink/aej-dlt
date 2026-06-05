@@ -1,5 +1,8 @@
 .dlt/
+.claude/
 .env
+.uv-cache/
+.venv/
 .pytest_cache/
 .ruff_cache/
 __pycache__/
