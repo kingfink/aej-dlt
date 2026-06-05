@@ -1,10 +1,41 @@
-.dlt/
-.env
-.pytest_cache/
-.ruff_cache/
+# Python bytecode and caches
 __pycache__/
-*.egg-info/
-*.pyc
+*.py[cod]
+*$py.class
+/.pytest_cache/
+/.ruff_cache/
+/.uv-cache/
+.mypy_cache/
+.hypothesis/
+
+# Virtual environments
+/.venv/
+/venv/
+/env/
+
+# Build and package artifacts
+build/
 dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+
+# Local dlt and database runtime files
+/.dlt/
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite
+*.sqlite3
+
+# Local environment and OS/editor noise
+/.claude/
+.env
+.env.*
+!.env.example
+.DS_Store
 site/
-venv/
