@@ -23,6 +23,10 @@ Source files are discovered and opened with dlt's filesystem source. Provider
 or filesystem mtimes are intentionally ignored because fresh clones would make
 checkout time look like content change time.
 
+Markdown extraction is provided by
+[`tailor-made-dlt-sources`](https://github.com/kingfink/dlt-sources). This repo
+only configures the AEJ-specific `resource_globs` and BigQuery/Modal runtime.
+
 ## Local Development
 
 Install the package and dev dependencies:

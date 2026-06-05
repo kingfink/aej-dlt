@@ -7,20 +7,16 @@ import importlib
 import os
 from pathlib import Path
 
-from aej_dlt.warehouse import GitTimestampResolver, build_file_item_rows
+from tailor_made_dlt_sources.git_repo_markdown_files import (
+    build_dlt_resources as build_markdown_dlt_resources,
+)
 
 PIPELINE_NAME = "aej_repo_content"
-INCREMENTAL_CURSOR_FIELD = "modified_at_cursor"
-INCREMENTAL_INITIAL_VALUE = "1970-01-01T00:00:00.000000+00:00|"
 BIGQUERY_PRIVATE_KEY_ENV = "DESTINATION__BIGQUERY__CREDENTIALS__PRIVATE_KEY"
 
-RESOURCE_COLUMNS = {
-    "file_path": {"data_type": "text"},
-    "frontmatter": {"data_type": "json"},
-    "content": {"data_type": "text"},
-    "created_at": {"data_type": "timestamp"},
-    "modified_at": {"data_type": "timestamp"},
-    INCREMENTAL_CURSOR_FIELD: {"data_type": "text"},
+AEJ_RESOURCE_GLOBS = {
+    "jobs": "docs/jobs/**/*.md",
+    "organizations": "docs/organizations/*.md",
 }
 
 
@@ -92,53 +88,14 @@ def build_dlt_resources(
     filesystem_resource,
     timestamp_resolver=None,
 ):
-    """Return dlt resources for incremental merge loading."""
-    repo_root = Path(repo_root).resolve()
-    resolver = timestamp_resolver or GitTimestampResolver(repo_root)
-    return [
-        _incremental_resource(
-            dlt_module,
-            "jobs",
-            filesystem_resource(
-                bucket_url=repo_root.as_uri(),
-                file_glob="docs/jobs/**/*.md",
-            ),
-            resolver,
-        ),
-        _incremental_resource(
-            dlt_module,
-            "organizations",
-            filesystem_resource(
-                bucket_url=repo_root.as_uri(),
-                file_glob="docs/organizations/*.md",
-            ),
-            resolver,
-        ),
-    ]
-
-
-def _incremental_resource(dlt_module, table_name: str, file_items, timestamp_resolver):
-    @dlt_module.resource(
-        name=table_name,
-        primary_key="file_path",
-        write_disposition="merge",
-        columns=RESOURCE_COLUMNS,
+    """Return AEJ markdown resources for incremental merge loading."""
+    return build_markdown_dlt_resources(
+        dlt_module,
+        repo_root=repo_root,
+        resource_globs=AEJ_RESOURCE_GLOBS,
+        filesystem_resource=filesystem_resource,
+        timestamp_resolver=timestamp_resolver,
     )
-    def markdown_rows(
-        modified_at=dlt_module.sources.incremental(  # noqa: B008
-            INCREMENTAL_CURSOR_FIELD,
-            initial_value=INCREMENTAL_INITIAL_VALUE,
-            row_order="asc",
-        ),
-    ):
-        del modified_at
-        ordered_rows = sorted(
-            build_file_item_rows(file_items, timestamp_resolver),
-            key=lambda row: str(row[INCREMENTAL_CURSOR_FIELD]),
-        )
-        yield from ordered_rows
-
-    return markdown_rows
 
 
 def _filesystem_resource():
