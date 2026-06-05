@@ -22,8 +22,8 @@ image = (
     .pip_install(
         "dlt[bigquery]==1.26.0",
         "google-cloud-bigquery-storage==2.37.0",
+        "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.1.0",
         "modal==1.2.5",
-        "pyyaml==6.0.2",
     )
     .add_local_dir(
         SOURCE_ROOT / "aej_dlt",
