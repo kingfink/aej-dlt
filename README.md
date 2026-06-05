@@ -1,13 +1,14 @@
 # aej-dlt
 
-`aej-dlt` loads raw source content from
-[`kingfink/analytics-engineering-jobs`](https://github.com/kingfink/analytics-engineering-jobs)
-into BigQuery with [`dlt`](https://dlthub.com/).
+Analytics Engineering Jobs markdown content -> BigQuery via
+[`dlt`](https://dlthub.com/), scheduled on [Modal](https://modal.com/).
 
-Markdown extraction is provided by
-[`tailor-made-dlt-sources`](https://github.com/kingfink/dlt-sources). This repo
-keeps only the Analytics Engineering Jobs-specific `resource_globs`,
-BigQuery destination wiring, and Modal runtime.
+The pipeline loads raw source content from
+[`kingfink/analytics-engineering-jobs`](https://github.com/kingfink/analytics-engineering-jobs).
+Markdown extraction comes from the shared
+[`tailor-made-dlt-sources`](https://github.com/kingfink/dlt-sources) package, so
+this repo only owns the Analytics Engineering Jobs resource globs, BigQuery
+destination wiring, and Modal runtime.
 
 The pipeline currently loads `jobs` and `organizations`. Both tables use the
 same row shape:
@@ -22,33 +23,33 @@ same row shape:
 Provider or filesystem mtimes are intentionally ignored because fresh clones
 would make checkout time look like content change time.
 
-## Public Visibility
+## Public visibility
 
 This repository is public for source visibility only. It is not maintained as a
 community project and is not accepting outside contributions, pull requests,
 issues, or support requests. No license is provided.
 
-## Development
+## Local dev
+
+Prereqs:
+
+- `uv`
+- BigQuery destination configuration for your own project and dataset
 
 ```bash
-python -m pip install -e ".[dev]"
-python -m pytest
-python -m ruff check .
-python -m ruff format --check .
+uv sync --extra dev
 ```
 
-## Local Sync
-
-Set BigQuery destination configuration in the environment, then point the CLI at
-a local checkout of the source repo:
+Set destination configuration in the environment, then point the local runner at
+a checkout of the source repo:
 
 ```bash
 export BIGQUERY_PROJECT=<gcp-project-id>
-export BIGQUERY_DATASET=<dataset-name>
+export BIGQUERY_DATASET=aej_dev_$USER
 export BIGQUERY_LOCATION=US
 
-aej-dlt --repo-root /path/to/analytics-engineering-jobs
-aej-dlt --repo-root /path/to/analytics-engineering-jobs --full-refresh
+uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs
+uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs --full-refresh
 ```
 
 Authenticate locally with Application Default Credentials or
@@ -60,14 +61,24 @@ hard-deleted in v1.
 
 ## Modal
 
-The Modal app is defined in `src/aej_dlt/modal_sync_bigquery.py`. It clones the
-source repo fresh on every run, then calls the same sync code.
+The Modal app expects secrets for GitHub source-repo access, BigQuery
+destination configuration, and BigQuery service account credentials. See
+`modal_app.py` for the environment variable names.
 
 ```bash
-modal deploy src/aej_dlt/modal_sync_bigquery.py
-modal run src/aej_dlt/modal_sync_bigquery.py
-modal run src/aej_dlt/modal_sync_bigquery.py --full-refresh
+uv run modal deploy modal_app.py
+uv run modal run modal_app.py::sync
+uv run modal run modal_app.py::sync --full-refresh
 ```
 
-The deployed app expects Modal secrets for GitHub source-repo access, BigQuery
-destination configuration, and BigQuery service account credentials.
+The scheduled Modal function clones the source repository fresh on each run so
+git-derived content timestamps are stable.
+
+## Layout
+
+| Path | What it does |
+| --- | --- |
+| `tailor_made_dlt_sources.git_repo_markdown_files` | Shared markdown filesystem source and git timestamp extraction. |
+| `aej_dlt/sync_bigquery.py` | Builds the AEJ markdown resources and runs the BigQuery dlt pipeline. |
+| `modal_app.py` | Modal app, cron entry point, and local CLI wrapper. |
+| `tests/` | Pipeline, Modal entrypoint, packaging, and CI contract tests. |

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import importlib
 import os
 from pathlib import Path
@@ -113,27 +112,3 @@ def _required_env(name: str) -> str:
     if not value:
         raise RuntimeError(f"{name} must be set")
     return value
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--repo-root",
-        type=Path,
-        default=Path("."),
-        help="Repository root containing docs/jobs and docs/organizations.",
-    )
-    parser.add_argument(
-        "--full-refresh",
-        action="store_true",
-        help="Truncate loaded tables and reset incremental state before syncing.",
-    )
-    args = parser.parse_args(argv)
-
-    load_info = sync_bigquery(args.repo_root, full_refresh=args.full_refresh)
-    print(load_info)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
