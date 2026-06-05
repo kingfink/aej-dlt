@@ -9,12 +9,12 @@ import yaml
 WORKFLOW_PATH = Path(".github/workflows/ci-cd.yml")
 
 
-def test_ci_cd_workflow_validates_prs_and_deploys_master() -> None:
+def test_ci_cd_workflow_validates_pushes_and_deploys_master() -> None:
     workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
 
     assert workflow["on"] == {
-        "pull_request": {"branches": ["master"]},
         "push": {"branches": ["master"]},
+        "workflow_dispatch": None,
     }
     assert workflow["permissions"] == {"contents": "read"}
 

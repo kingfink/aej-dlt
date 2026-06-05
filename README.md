@@ -31,7 +31,7 @@ only configures the AEJ-specific `resource_globs` and BigQuery/Modal runtime.
 
 This repository is public for source visibility only. It is not maintained as a
 community project and is not accepting outside contributions, pull requests,
-issues, or support requests.
+issues, or support requests. No license is provided.
 
 ## Local Development
 
@@ -51,8 +51,8 @@ python -m ruff format --check .
 
 ## CI/CD
 
-GitHub Actions runs linting, formatting, and tests on pull requests targeting
-`master` and on pushes to `master`.
+GitHub Actions runs linting, formatting, and tests on pushes to `master` and
+manual workflow dispatches.
 
 Pushes to `master` deploy the Modal app after validation passes. Configure these
 GitHub repository secrets before relying on automated deploys:
