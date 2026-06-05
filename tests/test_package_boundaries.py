@@ -10,3 +10,7 @@ def test_repository_uses_flat_package_layout() -> None:
 
     assert not Path("src").exists()
     assert not Path("docs").exists()
+
+
+def test_docs_directory_stays_ignored() -> None:
+    assert "docs/" in Path(".gitignore").read_text(encoding="utf-8").splitlines()

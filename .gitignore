@@ -19,6 +19,9 @@ dist/
 *.egg-info/
 pip-wheel-metadata/
 
+# Repo-local docs are intentionally kept out of this project
+docs/
+
 # Coverage artifacts
 .coverage
 .coverage.*
