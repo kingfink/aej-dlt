@@ -9,10 +9,11 @@ import yaml
 WORKFLOW_PATH = Path(".github/workflows/ci-cd.yml")
 
 
-def test_ci_cd_workflow_validates_pushes_and_deploys_master() -> None:
+def test_ci_cd_workflow_validates_same_repo_prs_and_deploys_master() -> None:
     workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
 
     assert workflow["on"] == {
+        "pull_request": {"branches": ["master"]},
         "push": {"branches": ["master"]},
         "workflow_dispatch": None,
     }
@@ -20,6 +21,10 @@ def test_ci_cd_workflow_validates_pushes_and_deploys_master() -> None:
 
     validate = workflow["jobs"]["validate"]
     assert validate["runs-on"] == "ubuntu-latest"
+    assert (
+        validate["if"]
+        == "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
+    )
     assert validate["steps"][1]["uses"] == "actions/setup-python@v5"
     assert validate["steps"][1]["with"]["python-version"] == "3.11"
 
