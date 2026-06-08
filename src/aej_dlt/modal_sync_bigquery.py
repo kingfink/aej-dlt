@@ -9,7 +9,7 @@ from pathlib import Path
 
 import modal
 
-APP_NAME = "aej-bigquery-sync"
+APP_NAME = "aej-dlt"
 SECRET_NAME = "aej-dlt-bq-sync"
 GITHUB_TOKEN_ENV = "GITHUB_TOKEN_AEJ"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
