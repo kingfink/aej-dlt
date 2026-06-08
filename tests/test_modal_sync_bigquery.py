@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import logging
 import sys
 import tomllib
 from pathlib import Path
 
-MODAL_ENTRYPOINT_PATH = Path("src/aej_dlt/modal_sync_bigquery.py")
+MODAL_ENTRYPOINT_PATH = Path("modal_app.py")
 PYPROJECT_PATH = Path("pyproject.toml")
 
 
@@ -77,14 +78,68 @@ def test_bigquery_storage_dependency_is_available_in_package_and_modal_image() -
     dependencies = pyproject["project"]["dependencies"]
 
     tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
-    modal_packages = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr == "pip_install":
-                modal_packages.extend(ast.literal_eval(arg) for arg in node.args)
 
     assert "google-cloud-bigquery-storage==2.37.0" in dependencies
-    assert "google-cloud-bigquery-storage==2.37.0" in modal_packages
+    assert "pip_install_from_pyproject" in _chained_call_names(_modal_image_expression(tree))
+    assert not _modal_pip_install_packages(tree)
+
+
+def test_modal_image_adds_local_package_source() -> None:
+    tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
+    image_calls = _chained_call_names(_modal_image_expression(tree))
+
+    assert image_calls.index("apt_install") < image_calls.index("pip_install_from_pyproject")
+    assert "add_local_python_source" in image_calls
+
+
+def test_configure_logging_lowers_existing_modal_handler_to_info(monkeypatch) -> None:
+    module = _load_modal_entrypoint(monkeypatch)
+    root = logging.getLogger()
+    original_level = root.level
+    original_handlers = list(root.handlers)
+    handler = logging.Handler()
+    handler.setLevel(logging.WARNING)
+
+    try:
+        root.handlers = [handler]
+        root.setLevel(logging.WARNING)
+
+        module._configure_logging()
+
+        assert root.level == logging.INFO
+        assert handler.level == logging.INFO
+    finally:
+        root.handlers = original_handlers
+        root.setLevel(original_level)
+
+
+def _modal_image_expression(tree: ast.Module) -> ast.AST:
+    return next(
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name) and target.id == "image"
+    )
+
+
+def _chained_call_names(node: ast.AST) -> list[str]:
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        return []
+
+    return [*_chained_call_names(node.func.value), node.func.attr]
+
+
+def _modal_pip_install_packages(tree: ast.Module) -> list[str]:
+    packages = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "pip_install"
+        ):
+            packages.extend(ast.literal_eval(arg) for arg in node.args)
+    return packages
 
 
 def _has_app_decorator(node: ast.FunctionDef, decorator_name: str) -> bool:
@@ -118,7 +173,7 @@ def _boolean_default(node: ast.FunctionDef, argument_name: str) -> bool | None:
 def _load_modal_entrypoint(monkeypatch):
     monkeypatch.setitem(sys.modules, "modal", _FakeModal)
     spec = importlib.util.spec_from_file_location(
-        "_modal_sync_bigquery_test",
+        "_modal_app_test",
         MODAL_ENTRYPOINT_PATH,
     )
     module = importlib.util.module_from_spec(spec)
@@ -138,7 +193,13 @@ class _FakeImage:
     def pip_install(self, *packages):
         return self
 
+    def pip_install_from_pyproject(self, *args, **kwargs):
+        return self
+
     def add_local_dir(self, *args, **kwargs):
+        return self
+
+    def add_local_python_source(self, *args, **kwargs):
         return self
 
 

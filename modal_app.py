@@ -1,7 +1,19 @@
-"""Modal entrypoint for syncing Analytics Engineering Jobs content to BigQuery."""
+"""Analytics Engineering Jobs -> BigQuery dlt pipeline.
+
+Cron + Modal:
+    modal deploy modal_app.py
+    modal run modal_app.py::sync
+    modal run modal_app.py::sync --full-refresh
+
+Local dev:
+    python modal_app.py --repo-root /path/to/analytics-engineering-jobs
+    python modal_app.py --repo-root /path/to/analytics-engineering-jobs --full-refresh
+"""
 
 from __future__ import annotations
 
+import argparse
+import logging
 import os
 import subprocess
 import tempfile
@@ -14,34 +26,41 @@ SECRET_NAME = "aej-dlt-bq-sync"
 GITHUB_TOKEN_ENV = "GITHUB_TOKEN_AEJ"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
 DEFAULT_REF = "master"
-SOURCE_ROOT = Path(__file__).resolve().parent.parent
+SECRETS = [modal.Secret.from_name(SECRET_NAME)]
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git")
-    .pip_install(
-        "dlt[bigquery]==1.26.0",
-        "google-cloud-bigquery-storage==2.37.0",
-        "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.1.0",
-        "modal==1.2.5",
-    )
-    .add_local_dir(
-        SOURCE_ROOT / "aej_dlt",
-        remote_path="/root/aej_dlt",
-        ignore=["__pycache__/**", "*.pyc"],
-    )
+    .pip_install_from_pyproject("pyproject.toml")
+    .add_local_python_source("aej_dlt")
 )
 
-app = modal.App(APP_NAME, image=image)
+app = modal.App(APP_NAME)
+
+
+def _configure_logging(level: int = logging.INFO) -> None:
+    """Ensure Modal and local runs emit info-level pipeline diagnostics."""
+    root = logging.getLogger()
+    if not root.handlers:
+        logging.basicConfig(level=level, format=LOG_FORMAT)
+        return
+
+    root.setLevel(level)
+    for handler in root.handlers:
+        if handler.level == logging.NOTSET or handler.level > level:
+            handler.setLevel(level)
 
 
 @app.function(
+    image=image,
     schedule=modal.Cron("0 6 * * *", timezone="America/New_York"),
-    secrets=[modal.Secret.from_name(SECRET_NAME)],
+    secrets=SECRETS,
     timeout=3600,
 )
 def sync(full_refresh: bool = False):
     """Run the scheduled BigQuery sync from a fresh clone."""
+    _configure_logging()
     return _sync_from_fresh_clone(full_refresh=full_refresh)
 
 
@@ -96,3 +115,25 @@ def _clone_repo(
             }
         )
         run_command(["git", "clone", repo_url, str(repo_path)], check=True, env=env)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Local dev run.")
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=Path("."),
+        help="Repository root containing docs/jobs and docs/organizations.",
+    )
+    parser.add_argument(
+        "--full-refresh",
+        action="store_true",
+        help="Truncate loaded tables and reset incremental state before syncing.",
+    )
+    args = parser.parse_args()
+
+    _configure_logging()
+
+    from aej_dlt.sync_bigquery import sync_bigquery
+
+    print(sync_bigquery(args.repo_root, full_refresh=args.full_refresh))
