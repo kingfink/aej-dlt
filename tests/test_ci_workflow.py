@@ -13,6 +13,7 @@ def test_ci_cd_workflow_uses_uv_and_deploys_master() -> None:
     workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
 
     assert workflow["on"] == {
+        "pull_request": {"branches": ["master"]},
         "push": {"branches": ["master"]},
         "workflow_dispatch": None,
     }
@@ -20,7 +21,10 @@ def test_ci_cd_workflow_uses_uv_and_deploys_master() -> None:
 
     validate = workflow["jobs"]["validate"]
     assert validate["runs-on"] == "ubuntu-latest"
-    assert "if" not in validate
+    assert validate["if"] == (
+        "github.event_name != 'pull_request' "
+        "|| github.event.pull_request.head.repo.full_name == github.repository"
+    )
     assert validate["steps"][1]["uses"] == "astral-sh/setup-uv@v6"
     assert validate["steps"][1]["with"] == {"enable-cache": True}
 
