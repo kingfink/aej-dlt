@@ -4,8 +4,6 @@ Cron + Modal:
     modal deploy modal_app.py
     modal run modal_app.py::sync
     modal run modal_app.py::sync --full-refresh
-    modal run modal_app.py::sync_netlify_forms
-    modal run modal_app.py::sync_netlify_forms --full-refresh
 
 Local dev:
     python modal_app.py --repo-root /path/to/analytics-engineering-jobs
@@ -29,8 +27,10 @@ NETLIFY_SECRET_NAME = "aej-dlt-netlify"
 GITHUB_TOKEN_ENV = "GITHUB_TOKEN_AEJ"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
 DEFAULT_REF = "master"
-SECRETS = [modal.Secret.from_name(SECRET_NAME)]
-NETLIFY_SECRETS = [*SECRETS, modal.Secret.from_name(NETLIFY_SECRET_NAME)]
+SECRETS = [
+    modal.Secret.from_name(SECRET_NAME),
+    modal.Secret.from_name(NETLIFY_SECRET_NAME),
+]
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 image = (
@@ -58,28 +58,14 @@ def _configure_logging(level: int = logging.INFO) -> None:
 
 @app.function(
     image=image,
-    schedule=modal.Cron("0 6 * * *", timezone="America/New_York"),
+    schedule=modal.Cron("45 5,11,17,23 * * *", timezone="UTC"),
     secrets=SECRETS,
     timeout=3600,
 )
 def sync(full_refresh: bool = False):
-    """Run the scheduled BigQuery sync from a fresh clone."""
+    """Load repository content and Netlify submissions into BigQuery."""
     _configure_logging()
     return _sync_from_fresh_clone(full_refresh=full_refresh)
-
-
-@app.function(
-    image=image,
-    schedule=modal.Cron("45 5,11,17,23 * * *", timezone="UTC"),
-    secrets=NETLIFY_SECRETS,
-    timeout=900,
-)
-def sync_netlify_forms(full_refresh: bool = False):
-    """Load Netlify submissions shortly before each dbt production build."""
-    _configure_logging()
-    from aej_dlt.netlify_forms import sync_netlify_forms as run_sync
-
-    return str(run_sync(full_refresh=full_refresh))
 
 
 @app.local_entrypoint()
@@ -96,9 +82,17 @@ def _sync_from_fresh_clone(*, full_refresh: bool):
         _clone_repo(repo_url, repo_path, github_token=os.environ.get(GITHUB_TOKEN_ENV))
         subprocess.run(["git", "checkout", ref], cwd=repo_path, check=True)
 
-        from aej_dlt.sync_bigquery import sync_bigquery
+        return _sync_all(repo_path, full_refresh=full_refresh)
 
-        return str(sync_bigquery(repo_path, full_refresh=full_refresh))
+
+def _sync_all(repo_root: Path, *, full_refresh: bool):
+    from aej_dlt.netlify_forms import sync_netlify_forms
+    from aej_dlt.sync_bigquery import sync_bigquery
+
+    return {
+        "repo_content": str(sync_bigquery(repo_root, full_refresh=full_refresh)),
+        "netlify_forms": str(sync_netlify_forms(full_refresh=full_refresh)),
+    }
 
 
 def _clone_repo(
@@ -152,6 +146,4 @@ if __name__ == "__main__":
 
     _configure_logging()
 
-    from aej_dlt.sync_bigquery import sync_bigquery
-
-    print(sync_bigquery(args.repo_root, full_refresh=args.full_refresh))
+    print(_sync_all(args.repo_root, full_refresh=args.full_refresh))

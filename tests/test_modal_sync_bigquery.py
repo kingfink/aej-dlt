@@ -50,11 +50,37 @@ def test_modal_entrypoint_exposes_deployed_functions_and_local_cli() -> None:
         node.name for node in functions.values() if _has_app_decorator(node, "local_entrypoint")
     ]
 
-    assert deployed_functions == ["sync", "sync_netlify_forms"]
+    assert deployed_functions == ["sync"]
     assert local_entrypoints == ["main"]
     assert _boolean_default(functions["sync"], "full_refresh") is False
-    assert _boolean_default(functions["sync_netlify_forms"], "full_refresh") is False
     assert _boolean_default(functions["main"], "full_refresh") is False
+
+
+def test_sync_all_runs_repo_content_and_netlify_pipelines(monkeypatch, tmp_path) -> None:
+    module = _load_modal_entrypoint(monkeypatch)
+    calls = []
+
+    def sync_bigquery(repo_root, *, full_refresh):
+        calls.append(("repo_content", repo_root, full_refresh))
+        return "repo load info"
+
+    def sync_netlify_forms(*, full_refresh):
+        calls.append(("netlify_forms", full_refresh))
+        return "netlify load info"
+
+    monkeypatch.setattr("aej_dlt.sync_bigquery.sync_bigquery", sync_bigquery)
+    monkeypatch.setattr("aej_dlt.netlify_forms.sync_netlify_forms", sync_netlify_forms)
+
+    result = module._sync_all(tmp_path, full_refresh=True)
+
+    assert result == {
+        "repo_content": "repo load info",
+        "netlify_forms": "netlify load info",
+    }
+    assert calls == [
+        ("repo_content", tmp_path, True),
+        ("netlify_forms", True),
+    ]
 
 
 def test_clone_repo_uses_git_askpass_for_github_token(monkeypatch, tmp_path) -> None:

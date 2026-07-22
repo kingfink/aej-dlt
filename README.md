@@ -10,7 +10,7 @@ Markdown extraction comes from the shared
 this repo only owns the Analytics Engineering Jobs resource globs, BigQuery
 destination wiring, and Modal runtime.
 
-A separate pipeline loads verified Netlify form submissions through the reusable `tailor-made-dlt-sources` Netlify source. It fetches the complete source on every run and uses dlt `merge` loading keyed by `submission_id`, so retries and backfills are idempotent while submissions previously observed in the warehouse are retained if they are later deleted from Netlify.
+The same scheduled sync also loads verified Netlify form submissions through the reusable `tailor-made-dlt-sources` Netlify source. It fetches the complete source on every run and uses dlt `merge` loading keyed by `submission_id`, so retries and backfills are idempotent while submissions previously observed in the warehouse are retained if they are later deleted from Netlify.
 
 The repository-content pipeline currently loads `jobs` and `organizations`. Both tables use the
 same row shape:
@@ -57,12 +57,6 @@ uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs
 uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs --full-refresh
 ```
 
-Run the Netlify source locally with:
-
-```bash
-uv run python -c 'from aej_dlt.netlify_forms import sync_netlify_forms; print(sync_netlify_forms())'
-```
-
 Authenticate locally with Application Default Credentials or
 `GOOGLE_APPLICATION_CREDENTIALS`.
 
@@ -72,17 +66,15 @@ hard-deleted in v1.
 
 ## Modal
 
-The Modal app expects `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials. Create `aej-dlt-netlify` with `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`; the Netlify pipeline combines it with the BigQuery secret.
+The Modal app's single sync function combines `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials with `aej-dlt-netlify` for `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`.
 
 ```bash
 uv run modal deploy modal_app.py
 uv run modal run modal_app.py::sync
 uv run modal run modal_app.py::sync --full-refresh
-uv run modal run modal_app.py::sync_netlify_forms
-uv run modal run modal_app.py::sync_netlify_forms --full-refresh
 ```
 
-The scheduled repository-content function clones the source repository fresh on each run so git-derived content timestamps are stable. The Netlify function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly before the production dbt schedule.
+The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly before the production dbt schedule. It clones the source repository fresh so git-derived content timestamps are stable, then runs the repository-content and Netlify pipelines.
 
 ## Layout
 
