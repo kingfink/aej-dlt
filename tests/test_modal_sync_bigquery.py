@@ -26,7 +26,20 @@ def test_modal_entrypoint_uses_aej_dlt_bigquery_secret() -> None:
     assert secret_name == "aej-dlt-bq-sync"
 
 
-def test_modal_entrypoint_exposes_one_deployed_function_and_local_cli() -> None:
+def test_modal_entrypoint_uses_separate_netlify_secret() -> None:
+    tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
+
+    secret_name = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "NETLIFY_SECRET_NAME":
+                    secret_name = ast.literal_eval(node.value)
+
+    assert secret_name == "aej-dlt-netlify"
+
+
+def test_modal_entrypoint_exposes_deployed_functions_and_local_cli() -> None:
     tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
 
@@ -41,6 +54,33 @@ def test_modal_entrypoint_exposes_one_deployed_function_and_local_cli() -> None:
     assert local_entrypoints == ["main"]
     assert _boolean_default(functions["sync"], "full_refresh") is False
     assert _boolean_default(functions["main"], "full_refresh") is False
+
+
+def test_sync_all_runs_repo_content_and_netlify_pipelines(monkeypatch, tmp_path) -> None:
+    module = _load_modal_entrypoint(monkeypatch)
+    calls = []
+
+    def sync_bigquery(repo_root, *, full_refresh):
+        calls.append(("repo_content", repo_root, full_refresh))
+        return "repo load info"
+
+    def sync_netlify_forms(*, full_refresh):
+        calls.append(("netlify_forms", full_refresh))
+        return "netlify load info"
+
+    monkeypatch.setattr("aej_dlt.sync_bigquery.sync_bigquery", sync_bigquery)
+    monkeypatch.setattr("aej_dlt.netlify_forms.sync_netlify_forms", sync_netlify_forms)
+
+    result = module._sync_all(tmp_path, full_refresh=True)
+
+    assert result == {
+        "repo_content": "repo load info",
+        "netlify_forms": "netlify load info",
+    }
+    assert calls == [
+        ("repo_content", tmp_path, True),
+        ("netlify_forms", True),
+    ]
 
 
 def test_clone_repo_uses_git_askpass_for_github_token(monkeypatch, tmp_path) -> None:
