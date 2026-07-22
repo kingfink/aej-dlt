@@ -11,12 +11,14 @@ PYPROJECT_PATH = Path("pyproject.toml")
 SYNC_BIGQUERY_PATH = Path("aej_dlt/sync_bigquery.py")
 
 DLT_SOURCES_REQUIREMENT = (
-    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.1.0"
+    "tailor-made-dlt-sources @ "
+    "git+https://github.com/kingfink/dlt-sources@e328ac41c99a097ab5b21dde97c756d39ef372dc"
 )
-DLT_SOURCES_IMPORT = "tailor_made_dlt_sources.git_repo_markdown_files"
+GIT_REPO_SOURCE_IMPORT = "tailor_made_dlt_sources.git_repo_markdown_files"
+NETLIFY_SOURCE_IMPORT = "tailor_made_dlt_sources.netlify_forms"
 
 
-def test_package_and_modal_image_pin_tailor_made_dlt_sources_release() -> None:
+def test_package_and_modal_image_pin_tailor_made_dlt_sources_revision() -> None:
     pyproject = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
 
     assert DLT_SOURCES_REQUIREMENT in pyproject["project"]["dependencies"]
@@ -33,7 +35,19 @@ def test_sync_imports_git_repo_markdown_files_source_package() -> None:
         if isinstance(node, ast.ImportFrom) and node.module is not None
     ]
 
-    assert DLT_SOURCES_IMPORT in imports
+    assert GIT_REPO_SOURCE_IMPORT in imports
+
+
+def test_netlify_sync_imports_netlify_forms_source_package() -> None:
+    tree = ast.parse(Path("aej_dlt/netlify_forms.py").read_text(encoding="utf-8"))
+
+    imports = [
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module is not None
+    ]
+
+    assert NETLIFY_SOURCE_IMPORT in imports
 
 
 def _modal_pip_install_packages() -> list[str]:

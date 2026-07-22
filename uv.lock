@@ -42,7 +42,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "tailor-made-dlt-sources", git = "https://github.com/kingfink/dlt-sources?rev=v0.1.0" },
+    { name = "tailor-made-dlt-sources", git = "https://github.com/kingfink/dlt-sources?rev=e328ac41c99a097ab5b21dde97c756d39ef372dc" },
 ]
 provides-extras = ["dev"]
 
@@ -2138,7 +2138,7 @@ wheels = [
 [[package]]
 name = "tailor-made-dlt-sources"
 version = "0.1.0"
-source = { git = "https://github.com/kingfink/dlt-sources?rev=v0.1.0#65d8fbac75b1a344ef4e7675bd2374a1363593c8" }
+source = { git = "https://github.com/kingfink/dlt-sources?rev=e328ac41c99a097ab5b21dde97c756d39ef372dc#e328ac41c99a097ab5b21dde97c756d39ef372dc" }
 dependencies = [
     { name = "dlt" },
     { name = "pyyaml" },

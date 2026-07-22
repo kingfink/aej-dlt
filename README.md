@@ -10,7 +10,7 @@ Markdown extraction comes from the shared
 this repo only owns the Analytics Engineering Jobs resource globs, BigQuery
 destination wiring, and Modal runtime.
 
-A separate pipeline loads verified Netlify form submissions through the Netlify Forms API. It fetches the complete source on every run and uses dlt `merge` loading keyed by `submission_id`, so retries and backfills are idempotent while submissions previously observed in the warehouse are retained if they are later deleted from Netlify.
+A separate pipeline loads verified Netlify form submissions through the reusable `tailor-made-dlt-sources` Netlify source. It fetches the complete source on every run and uses dlt `merge` loading keyed by `submission_id`, so retries and backfills are idempotent while submissions previously observed in the warehouse are retained if they are later deleted from Netlify.
 
 The repository-content pipeline currently loads `jobs` and `organizations`. Both tables use the
 same row shape:
@@ -90,6 +90,6 @@ The scheduled repository-content function clones the source repository fresh on 
 | --- | --- |
 | `tailor_made_dlt_sources.git_repo_markdown_files` | Shared markdown filesystem source and git timestamp extraction. |
 | `aej_dlt/sync_bigquery.py` | Builds the AEJ markdown resources and runs the BigQuery dlt pipeline. |
-| `aej_dlt/netlify_forms.py` | Fetches verified Netlify submissions and merge-loads the raw `netlify.form_submissions` table. |
+| `aej_dlt/netlify_forms.py` | Configures the AEJ BigQuery pipeline around the reusable Netlify Forms source. |
 | `modal_app.py` | Modal app, cron entry point, and local CLI wrapper. |
 | `tests/` | Pipeline, Modal entrypoint, packaging, and CI contract tests. |
