@@ -11,14 +11,13 @@ PYPROJECT_PATH = Path("pyproject.toml")
 SYNC_BIGQUERY_PATH = Path("aej_dlt/sync_bigquery.py")
 
 DLT_SOURCES_REQUIREMENT = (
-    "tailor-made-dlt-sources @ "
-    "git+https://github.com/kingfink/dlt-sources@e328ac41c99a097ab5b21dde97c756d39ef372dc"
+    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.2.0"
 )
 GIT_REPO_SOURCE_IMPORT = "tailor_made_dlt_sources.git_repo_markdown_files"
 NETLIFY_SOURCE_IMPORT = "tailor_made_dlt_sources.netlify_forms"
 
 
-def test_package_and_modal_image_pin_tailor_made_dlt_sources_revision() -> None:
+def test_package_and_modal_image_pin_tailor_made_dlt_sources_release() -> None:
     pyproject = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
 
     assert DLT_SOURCES_REQUIREMENT in pyproject["project"]["dependencies"]
