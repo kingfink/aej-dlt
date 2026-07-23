@@ -52,6 +52,18 @@ def test_modal_entrypoint_uses_separate_healthchecks_secret() -> None:
     assert secret_name == "aej-dlt-healthchecks"
 
 
+def test_healthchecks_secret_declares_its_required_key(monkeypatch) -> None:
+    """Modal validates required_keys at deploy time, not at 05:45 UTC."""
+    from aej_dlt.healthcheck import HEALTHCHECK_URL_ENV
+
+    _FakeSecret.calls.clear()
+    module = _load_modal_entrypoint(monkeypatch)
+
+    required_keys = {name: kwargs.get("required_keys") for name, kwargs in _FakeSecret.calls}
+
+    assert required_keys[module.HEALTHCHECKS_SECRET_NAME] == [HEALTHCHECK_URL_ENV]
+
+
 def test_modal_entrypoint_exposes_deployed_functions_and_local_cli() -> None:
     tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
@@ -288,8 +300,11 @@ class _FakeImage:
 
 
 class _FakeSecret:
+    calls: list[tuple[str, dict]] = []
+
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name, **kwargs):
+        cls.calls.append((name, kwargs))
         return cls()
 
 

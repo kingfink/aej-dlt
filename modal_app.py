@@ -21,6 +21,8 @@ from pathlib import Path
 
 import modal
 
+from aej_dlt.healthcheck import HEALTHCHECK_URL_ENV
+
 APP_NAME = "aej-dlt"
 SECRET_NAME = "aej-dlt-bq-sync"
 NETLIFY_SECRET_NAME = "aej-dlt-netlify"
@@ -31,7 +33,7 @@ DEFAULT_REF = "master"
 SECRETS = [
     modal.Secret.from_name(SECRET_NAME),
     modal.Secret.from_name(NETLIFY_SECRET_NAME),
-    modal.Secret.from_name(HEALTHCHECKS_SECRET_NAME),
+    modal.Secret.from_name(HEALTHCHECKS_SECRET_NAME, required_keys=[HEALTHCHECK_URL_ENV]),
 ]
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 

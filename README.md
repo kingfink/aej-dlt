@@ -80,7 +80,7 @@ The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly befor
 
 Modal emails the workspace when a scheduled run crashes. That covers loud failures but not a cron that quietly stops firing or a run that hangs, so the scheduled function also pings [healthchecks.io](https://healthchecks.io/).
 
-Set `HEALTHCHECKS_PING_URL` in the `aej-dlt-healthchecks` Modal secret to the check's ping URL. The run pings `/start` on entry, the base URL on success, and `/fail` with the traceback on failure. Per-pipeline load info is sent as the success ping body, so the healthchecks.io UI shows which pipeline loaded what without opening Modal logs.
+Set `HEALTHCHECKS_PING_URL` in the `aej-dlt-healthchecks` Modal secret to the check's ping URL. The secret is declared with `required_keys`, matching `aej-dbt`, so a missing key fails the deploy instead of the next scheduled run. The run pings `/start` on entry, the base URL on success, and `/fail` with the traceback on failure. Per-pipeline load info is sent as the success ping body, so the healthchecks.io UI shows which pipeline loaded what without opening Modal logs.
 
 Configure the check with a period of 6 hours and a grace time of 1 hour to match the cron and the function's 3600s timeout.
 
