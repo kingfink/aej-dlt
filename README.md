@@ -66,7 +66,7 @@ hard-deleted in v1.
 
 ## Modal
 
-The Modal app's single sync function combines `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials with `aej-dlt-netlify` for `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`.
+The Modal app's single sync function combines `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials with `aej-dlt-netlify` for `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`, and `aej-dlt-healthchecks` for `HEALTHCHECKS_PING_URL`.
 
 ```bash
 uv run modal deploy modal_app.py
@@ -76,6 +76,18 @@ uv run modal run modal_app.py::sync --full-refresh
 
 The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly before the production dbt schedule. It clones the source repository fresh so git-derived content timestamps are stable, then runs the repository-content and Netlify pipelines.
 
+## Monitoring
+
+Modal emails the workspace when a scheduled run crashes. That covers loud failures but not a cron that quietly stops firing or a run that hangs, so the scheduled function also pings [healthchecks.io](https://healthchecks.io/).
+
+Set `HEALTHCHECKS_PING_URL` in the `aej-dlt-healthchecks` Modal secret to the check's ping URL. The secret is declared with `required_keys`, matching `aej-dbt`, so a missing key fails the deploy instead of the next scheduled run. The run pings `/start` on entry, the base URL on success, and `/fail` with the traceback on failure. Per-pipeline load info is sent as the success ping body, so the healthchecks.io UI shows which pipeline loaded what without opening Modal logs.
+
+Configure the check with a period of 6 hours and a grace time of 1 hour to match the cron and the function's 3600s timeout.
+
+Pings are best effort: transport errors are logged and swallowed so a healthchecks.io outage cannot fail a sync. When `HEALTHCHECKS_PING_URL` is unset the pings are skipped entirely, which is why local runs and CI stay off the network.
+
+Not covered: a run that succeeds while loading zero rows. That needs a row-count assertion on the dlt `LoadInfo`.
+
 ## Layout
 
 | Path | What it does |
@@ -83,5 +95,6 @@ The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly befor
 | `tailor_made_dlt_sources.git_repo_markdown_files` | Shared markdown filesystem source and git timestamp extraction. |
 | `aej_dlt/sync_bigquery.py` | Builds the AEJ markdown resources and runs the BigQuery dlt pipeline. |
 | `aej_dlt/netlify_forms.py` | Configures the AEJ BigQuery pipeline around the reusable Netlify Forms source. |
+| `aej_dlt/healthcheck.py` | Wraps the scheduled run in healthchecks.io start/success/fail pings. |
 | `modal_app.py` | Modal app, cron entry point, and local CLI wrapper. |
 | `tests/` | Pipeline, Modal entrypoint, packaging, and CI contract tests. |

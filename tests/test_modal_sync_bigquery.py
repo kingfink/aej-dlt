@@ -39,6 +39,31 @@ def test_modal_entrypoint_uses_separate_netlify_secret() -> None:
     assert secret_name == "aej-dlt-netlify"
 
 
+def test_modal_entrypoint_uses_separate_healthchecks_secret() -> None:
+    tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
+
+    secret_name = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "HEALTHCHECKS_SECRET_NAME":
+                    secret_name = ast.literal_eval(node.value)
+
+    assert secret_name == "aej-dlt-healthchecks"
+
+
+def test_healthchecks_secret_declares_its_required_key(monkeypatch) -> None:
+    """Modal validates required_keys at deploy time, not at 05:45 UTC."""
+    from aej_dlt.healthcheck import HEALTHCHECK_URL_ENV
+
+    _FakeSecret.calls.clear()
+    module = _load_modal_entrypoint(monkeypatch)
+
+    required_keys = {name: kwargs.get("required_keys") for name, kwargs in _FakeSecret.calls}
+
+    assert required_keys[module.HEALTHCHECKS_SECRET_NAME] == [HEALTHCHECK_URL_ENV]
+
+
 def test_modal_entrypoint_exposes_deployed_functions_and_local_cli() -> None:
     tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
@@ -81,6 +106,37 @@ def test_sync_all_runs_repo_content_and_netlify_pipelines(monkeypatch, tmp_path)
         ("repo_content", tmp_path, True),
         ("netlify_forms", True),
     ]
+
+
+def test_scheduled_sync_wraps_the_run_in_a_healthcheck(monkeypatch) -> None:
+    module = _load_modal_entrypoint(monkeypatch)
+    calls = []
+
+    def run_with_healthcheck(run):
+        calls.append("healthcheck")
+        return run()
+
+    def sync_from_fresh_clone(*, full_refresh):
+        calls.append(("sync_from_fresh_clone", full_refresh))
+        return "load info"
+
+    monkeypatch.setattr("aej_dlt.healthcheck.run_with_healthcheck", run_with_healthcheck)
+    monkeypatch.setattr(module, "_sync_from_fresh_clone", sync_from_fresh_clone)
+
+    assert module.sync(full_refresh=True) == "load info"
+    assert calls == ["healthcheck", ("sync_from_fresh_clone", True)]
+
+
+def test_local_cli_entrypoint_does_not_ping_healthchecks() -> None:
+    source = MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    main_block = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.If) and ast.unparse(node.test) == "__name__ == '__main__'"
+    )
+
+    assert "run_with_healthcheck" not in ast.unparse(main_block)
 
 
 def test_clone_repo_uses_git_askpass_for_github_token(monkeypatch, tmp_path) -> None:
@@ -244,8 +300,11 @@ class _FakeImage:
 
 
 class _FakeSecret:
+    calls: list[tuple[str, dict]] = []
+
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name, **kwargs):
+        cls.calls.append((name, kwargs))
         return cls()
 
 
