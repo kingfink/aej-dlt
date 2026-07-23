@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from aej_dlt.healthcheck import HEALTHCHECK_URL_ENV, MAX_BODY_CHARS, run_with_healthcheck
+from aej_dlt.healthcheck import (
+    HEALTHCHECK_URL_ENV,
+    MAX_BODY_CHARS,
+    PING_ATTEMPTS,
+    run_with_healthcheck,
+)
 
 PING_URL = "https://hc-ping.com/11111111-2222-3333-4444-555555555555"
 
@@ -78,6 +83,25 @@ def test_ping_transport_failure_does_not_break_a_successful_run(monkeypatch) -> 
     opener = _RecordingOpener(error=OSError("healthchecks.io unreachable"))
 
     assert run_with_healthcheck(lambda: "load info", opener=opener) == "load info"
+    assert len(opener.calls) == 2 * PING_ATTEMPTS
+
+
+def test_pings_are_retried_before_giving_up(monkeypatch) -> None:
+    monkeypatch.setenv(HEALTHCHECK_URL_ENV, PING_URL)
+    opener = _RecordingOpener(error=OSError("flaky"), fail_times=PING_ATTEMPTS - 1)
+
+    run_with_healthcheck(lambda: "load info", opener=opener)
+
+    start_calls = [call for call in opener.calls if call["url"].endswith("/start")]
+    assert len(start_calls) == PING_ATTEMPTS
+
+
+def test_a_retried_ping_stops_as_soon_as_it_succeeds(monkeypatch) -> None:
+    monkeypatch.setenv(HEALTHCHECK_URL_ENV, PING_URL)
+    opener = _RecordingOpener()
+
+    run_with_healthcheck(lambda: "load info", opener=opener)
+
     assert len(opener.calls) == 2
 
 
@@ -140,9 +164,10 @@ class _FakeResponse:
 
 
 class _RecordingOpener:
-    def __init__(self, error: Exception | None = None) -> None:
+    def __init__(self, error: Exception | None = None, fail_times: int | None = None) -> None:
         self.calls: list[dict] = []
         self._error = error
+        self._remaining_failures = fail_times
 
     def __call__(self, request, timeout=None):
         self.calls.append(
@@ -153,6 +178,9 @@ class _RecordingOpener:
                 "timeout": timeout,
             }
         )
-        if self._error:
+        if self._error and self._remaining_failures is None:
+            raise self._error
+        if self._error and self._remaining_failures > 0:
+            self._remaining_failures -= 1
             raise self._error
         return _FakeResponse()

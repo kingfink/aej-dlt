@@ -17,7 +17,8 @@ from collections.abc import Mapping
 from urllib.request import Request, urlopen
 
 HEALTHCHECK_URL_ENV = "HEALTHCHECKS_PING_URL"
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 5
+PING_ATTEMPTS = 3
 MAX_BODY_CHARS = 10_000
 
 logger = logging.getLogger(__name__)
@@ -62,9 +63,18 @@ def _ping(url: str, suffix: str, *, opener, timeout: int, body: str | None = Non
     target = url.rstrip("/") + suffix
     data = body[:MAX_BODY_CHARS].encode("utf-8") if body else None
 
-    try:
-        with opener(Request(target, data=data, method="POST"), timeout=timeout) as response:
-            response.read()
-    except Exception:
-        # The ping URL embeds a write capability token, so log the event only.
-        logger.warning("healthchecks.io %s ping failed", suffix or "success", exc_info=True)
+    for attempt in range(1, PING_ATTEMPTS + 1):
+        try:
+            with opener(Request(target, data=data, method="POST"), timeout=timeout) as response:
+                response.read()
+            return
+        except Exception:
+            if attempt < PING_ATTEMPTS:
+                continue
+            # The ping URL embeds a write capability token, so log the event only.
+            logger.warning(
+                "healthchecks.io %s ping failed after %s attempts",
+                suffix or "success",
+                PING_ATTEMPTS,
+                exc_info=True,
+            )
