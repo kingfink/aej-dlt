@@ -5,9 +5,9 @@ description = "dlt pipelines for Analytics Engineering Jobs source content."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "dlt[bigquery]==1.26.0",
+    "dlt[bigquery]==1.29.0",
     "google-cloud-bigquery-storage==2.37.0",
-    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.3.0",
+    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@4fb38daac1ed9fc314f97b4653fce3409e99f321",
     "modal==1.2.5",
 ]
 
