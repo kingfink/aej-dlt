@@ -11,10 +11,12 @@ PYPROJECT_PATH = Path("pyproject.toml")
 SYNC_BIGQUERY_PATH = Path("aej_dlt/sync_bigquery.py")
 
 DLT_SOURCES_REQUIREMENT = (
-    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources@v0.3.0"
+    "tailor-made-dlt-sources @ git+https://github.com/kingfink/dlt-sources"
+    "@4fb38daac1ed9fc314f97b4653fce3409e99f321"
 )
 GIT_REPO_SOURCE_IMPORT = "tailor_made_dlt_sources.git_repo_markdown_files"
 NETLIFY_SOURCE_IMPORT = "tailor_made_dlt_sources.netlify_forms"
+RESEND_SOURCE_IMPORT = "tailor_made_dlt_sources.resend"
 
 
 def test_package_and_modal_image_pin_tailor_made_dlt_sources_release() -> None:
@@ -47,6 +49,18 @@ def test_netlify_sync_imports_netlify_forms_source_package() -> None:
     ]
 
     assert NETLIFY_SOURCE_IMPORT in imports
+
+
+def test_resend_sync_imports_resend_source_package() -> None:
+    tree = ast.parse(Path("aej_dlt/resend_broadcasts.py").read_text(encoding="utf-8"))
+
+    imports = [
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module is not None
+    ]
+
+    assert RESEND_SOURCE_IMPORT in imports
 
 
 def _modal_pip_install_packages() -> list[str]:
