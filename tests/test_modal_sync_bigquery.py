@@ -39,6 +39,19 @@ def test_modal_entrypoint_uses_separate_netlify_secret() -> None:
     assert secret_name == "aej-dlt-netlify"
 
 
+def test_modal_entrypoint_uses_separate_resend_secret() -> None:
+    tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
+
+    secret_name = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "RESEND_SECRET_NAME":
+                    secret_name = ast.literal_eval(node.value)
+
+    assert secret_name == "aej-dlt-resend"
+
+
 def test_modal_entrypoint_uses_separate_healthchecks_secret() -> None:
     tree = ast.parse(MODAL_ENTRYPOINT_PATH.read_text(encoding="utf-8"))
 
@@ -81,7 +94,7 @@ def test_modal_entrypoint_exposes_deployed_functions_and_local_cli() -> None:
     assert _boolean_default(functions["main"], "full_refresh") is False
 
 
-def test_sync_all_runs_repo_content_and_netlify_pipelines(monkeypatch, tmp_path) -> None:
+def test_sync_all_runs_repo_content_netlify_and_resend_pipelines(monkeypatch, tmp_path) -> None:
     module = _load_modal_entrypoint(monkeypatch)
     calls = []
 
@@ -93,18 +106,25 @@ def test_sync_all_runs_repo_content_and_netlify_pipelines(monkeypatch, tmp_path)
         calls.append(("netlify_forms", full_refresh))
         return "netlify load info"
 
+    def sync_resend_broadcasts(*, full_refresh):
+        calls.append(("resend_broadcasts", full_refresh))
+        return "resend load info"
+
     monkeypatch.setattr("aej_dlt.sync_bigquery.sync_bigquery", sync_bigquery)
     monkeypatch.setattr("aej_dlt.netlify_forms.sync_netlify_forms", sync_netlify_forms)
+    monkeypatch.setattr("aej_dlt.resend_broadcasts.sync_resend_broadcasts", sync_resend_broadcasts)
 
     result = module._sync_all(tmp_path, full_refresh=True)
 
     assert result == {
         "repo_content": "repo load info",
         "netlify_forms": "netlify load info",
+        "resend_broadcasts": "resend load info",
     }
     assert calls == [
         ("repo_content", tmp_path, True),
         ("netlify_forms", True),
+        ("resend_broadcasts", True),
     ]
 
 
