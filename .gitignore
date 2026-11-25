@@ -36,7 +36,8 @@ htmlcov/
 *.sqlite3
 
 # Local environment and OS/editor noise
-/.claude/
+/.claude/*
+!/.claude/settings.json
 .env
 .env.*
 !.env.example
