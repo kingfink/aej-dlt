@@ -27,6 +27,7 @@ APP_NAME = "aej-dlt"
 SECRET_NAME = "aej-dlt-bq-sync"
 NETLIFY_SECRET_NAME = "aej-dlt-netlify"
 RESEND_SECRET_NAME = "aej-dlt-resend"
+STRIPE_SECRET_NAME = "aej-dlt-stripe"
 HEALTHCHECKS_SECRET_NAME = "aej-dlt-healthchecks"
 GITHUB_TOKEN_ENV = "GITHUB_TOKEN_AEJ"
 DEFAULT_REPO_URL = "https://github.com/kingfink/analytics-engineering-jobs.git"
@@ -35,6 +36,7 @@ SECRETS = [
     modal.Secret.from_name(SECRET_NAME),
     modal.Secret.from_name(NETLIFY_SECRET_NAME),
     modal.Secret.from_name(RESEND_SECRET_NAME),
+    modal.Secret.from_name(STRIPE_SECRET_NAME),
     modal.Secret.from_name(HEALTHCHECKS_SECRET_NAME, required_keys=[HEALTHCHECK_URL_ENV]),
 ]
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -69,7 +71,7 @@ def _configure_logging(level: int = logging.INFO) -> None:
     timeout=3600,
 )
 def sync(full_refresh: bool = False):
-    """Load repository content, Netlify submissions, and Resend broadcasts into BigQuery."""
+    """Load repository content, Netlify, Resend, and Stripe data into BigQuery."""
     from aej_dlt.healthcheck import run_with_healthcheck
 
     _configure_logging()
@@ -96,12 +98,14 @@ def _sync_from_fresh_clone(*, full_refresh: bool):
 def _sync_all(repo_root: Path, *, full_refresh: bool):
     from aej_dlt.netlify_forms import sync_netlify_forms
     from aej_dlt.resend_broadcasts import sync_resend_broadcasts
+    from aej_dlt.stripe_data import sync_stripe
     from aej_dlt.sync_bigquery import sync_bigquery
 
     return {
         "repo_content": str(sync_bigquery(repo_root, full_refresh=full_refresh)),
         "netlify_forms": str(sync_netlify_forms(full_refresh=full_refresh)),
         "resend_broadcasts": str(sync_resend_broadcasts(full_refresh=full_refresh)),
+        "stripe": str(sync_stripe(full_refresh=full_refresh)),
     }
 
 
