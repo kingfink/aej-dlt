@@ -1,0 +1,17 @@
+{
+  "env": {
+    "UV_CACHE_DIR": "/tmp/uv-cache",
+    "DLT_DATA_DIR": "/tmp/dlt"
+  },
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "pypi.org",
+        "files.pythonhosted.org",
+        "github.com",
+        "codeload.github.com",
+        "raw.githubusercontent.com"
+      ]
+    }
+  }
+}
