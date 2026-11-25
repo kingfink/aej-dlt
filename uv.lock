@@ -24,6 +24,7 @@ dependencies = [
     { name = "dlt", extra = ["bigquery"] },
     { name = "google-cloud-bigquery-storage" },
     { name = "modal" },
+    { name = "stripe" },
     { name = "tailor-made-dlt-sources" },
 ]
 
@@ -36,13 +37,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dlt", extras = ["bigquery"], specifier = "==1.26.0" },
+    { name = "dlt", extras = ["bigquery"], specifier = "==1.29.0" },
     { name = "google-cloud-bigquery-storage", specifier = "==2.37.0" },
     { name = "modal", specifier = "==1.2.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "tailor-made-dlt-sources", git = "https://github.com/kingfink/dlt-sources?rev=v0.3.0" },
+    { name = "stripe", specifier = ">=17.1.0" },
+    { name = "tailor-made-dlt-sources", git = "https://github.com/kingfink/dlt-sources?rev=4fb38daac1ed9fc314f97b4653fce3409e99f321" },
 ]
 provides-extras = ["dev"]
 
@@ -578,7 +580,7 @@ wheels = [
 
 [[package]]
 name = "dlt"
-version = "1.26.0"
+version = "1.29.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -608,9 +610,9 @@ dependencies = [
     { name = "tzdata" },
     { name = "win-precise-time", marker = "python_full_version < '3.13' and os_name == 'nt'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/20/c47492cd3c78287133fbba98aa41192c8613a371b8db57738d5096d05b8b/dlt-1.26.0.tar.gz", hash = "sha256:1a066fed8df7ace96a695309d9102046f9e3b9d60692e1cb93e842406aaf55ec", size = 1042686, upload-time = "2026-04-28T17:52:20.379Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/4e/393ef8cf88219f05a4f0285151148c39222232f7fa53d7627131a272dc04/dlt-1.29.0.tar.gz", hash = "sha256:ebba7f04c20d61fb813ed284184b463492dac741782c0465a00adf752fd3bcc8", size = 1108405, upload-time = "2026-07-13T09:31:06.325Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/1a/1430fc5989fe9a476b198a8a9b27e0795c2e6856d2593f7d21e660d99e2d/dlt-1.26.0-py3-none-any.whl", hash = "sha256:81e2d28bdc4d33e97978e3654542bdac95347342d15a35102d09fd79df50c2bd", size = 1312681, upload-time = "2026-04-28T17:52:16.234Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/cd/fec9313e4c13b1775e158516478d63ccaac6978c6a9dda425529183bd54c/dlt-1.29.0-py3-none-any.whl", hash = "sha256:06d45510762fe2ad5ee794ef139f5a2015720b816be1e0872363cb724744194c", size = 1388187, upload-time = "2026-07-13T09:31:03.95Z" },
 ]
 
 [package.optional-dependencies]
@@ -1128,14 +1130,11 @@ wheels = [
 
 [[package]]
 name = "jsonpath-ng"
-version = "1.7.0"
+version = "1.16.0"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ply" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/86/08646239a313f895186ff0a4573452038eed8c86f54380b3ebac34d32fb2/jsonpath-ng-1.7.0.tar.gz", hash = "sha256:f6f5f7fd4e5ff79c785f1573b394043b39849fb2bb47bcead935d12b00beab3c", size = 37838, upload-time = "2024-10-11T15:41:42.404Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/15/bfb28139fc18edbc8a360aff4bd98be981065410eeabdf10b8d3ea8f982f/jsonpath_ng-1.16.0.tar.gz", hash = "sha256:a81066736e00d47d0c2b5c510d12b78d09b40fd1ec954e7beff1954a55606099", size = 124800, upload-time = "2026-11-04T14:37:02.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/5a/73ecb3d82f8615f32ccdadeb9356726d6cae3a4bbc840b437ceb95708063/jsonpath_ng-1.7.0-py3-none-any.whl", hash = "sha256:f3d7f9e848cba1b6da28c55b1c26ff915dc9e0b1ba7e752a53d6da8d5cbd00b6", size = 30105, upload-time = "2024-11-20T17:58:30.418Z" },
+    { url = "https://files.pythonhosted.org/packages/59/a7/189b9c567504a84670cac5375bac7a1a1e2e2de260caae4298bbfc9b3168/jsonpath_ng-1.16.0-py3-none-any.whl", hash = "sha256:c5e28ddd70ebcaeba9af3c2b880933fbfeb108b5e68c9edb84e1b57803091218", size = 86201, upload-time = "2026-11-04T14:37:00.784Z" },
 ]
 
 [[package]]
@@ -1643,15 +1642,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
-name = "ply"
-version = "3.11"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e5/69/882ee5c9d017149285cab114ebeab373308ef0f874fcdac9beb90e0ac4da/ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3", size = 159130, upload-time = "2018-02-15T19:01:31.097Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/58/35da89ee790598a0700ea49b2a66594140f44dec458c07e8e3d4979137fc/ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce", size = 49567, upload-time = "2018-02-15T19:01:27.172Z" },
 ]
 
 [[package]]
@@ -2204,6 +2194,19 @@ wheels = [
 ]
 
 [[package]]
+name = "stripe"
+version = "17.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/ec/09fcf4d5a21aa23974470ab7a0f58e1011dec23effce4b6eaf3b103be1b3/stripe-17.1.0.tar.gz", hash = "sha256:767b8e0f350b2b00fae7f8fbe7e28d4c215aac23529c833f0e77ec20c5f3bb48", size = 1670474, upload-time = "2026-11-19T03:49:33.134Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/96/ee86b1748e0ff130474ac042cbeb683ea15ef210948a86bdbd5e73dbf8df/stripe-17.1.0-py3-none-any.whl", hash = "sha256:c8089bacd9f7d95b62e3f4c0fc6cb5dc719eb09b9d09c6ff330800d36bf8b6eb", size = 2690745, upload-time = "2026-11-19T03:49:30.546Z" },
+]
+
+[[package]]
 name = "synchronicity"
 version = "0.10.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2218,7 +2221,7 @@ wheels = [
 [[package]]
 name = "tailor-made-dlt-sources"
 version = "0.3.0"
-source = { git = "https://github.com/kingfink/dlt-sources?rev=v0.3.0#3c653d89706c0e3932c70bf9abe55db9c52e985c" }
+source = { git = "https://github.com/kingfink/dlt-sources?rev=4fb38daac1ed9fc314f97b4653fce3409e99f321#4fb38daac1ed9fc314f97b4653fce3409e99f321" }
 dependencies = [
     { name = "dlt" },
     { name = "pyyaml" },

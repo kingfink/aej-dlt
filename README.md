@@ -14,6 +14,8 @@ The same scheduled sync also loads verified Netlify form submissions through the
 
 It also loads AEJ newsletter broadcast content (subject, `sent_at`, HTML, and plain text) through the reusable `tailor-made-dlt-sources` Resend source, keyed by `broadcast_id` with dlt `merge` loading. Every run lists all sent broadcasts and fetches each one's detail, so the first run backfills available newsletters and reruns pick up new broadcasts and content edits without duplicating rows. Join to `resend_wh_emails` on `broadcast_id` to connect newsletter content to its delivery and click events.
 
+It also loads Stripe through dlt's verified `stripe_analytics` source, vendored in `aej_dlt/stripe_analytics/` because `tailor-made-dlt-sources` has no Stripe source. Into the `stripe` dataset, `incremental_stripe_source` loads the immutable `BalanceTransaction` and `Event` objects incrementally on `created`, keyed by `id`: the first run backfills everything Stripe returns (Stripe keeps events for about 30 days) and reruns append only newer records. Stripe objects have no `updated` field, so the mutable `Account`, `Charge`, `Coupon`, `Customer`, `Dispute`, `Invoice`, `PaymentIntent`, `Payout`, `Price`, `Product`, `Refund` and `Subscription` tables are replaced with their current state on every run (subscriptions of every status). The endpoint lists are `SNAPSHOT_ENDPOINTS` and `INCREMENTAL_ENDPOINTS` in `aej_dlt/stripe_data.py`.
+
 The repository-content pipeline currently loads `jobs` and `organizations`. Both tables use the
 same row shape:
 
@@ -41,6 +43,7 @@ Prereqs:
 - BigQuery destination configuration for your own project and dataset
 - A Netlify personal access token with access to the Analytics Engineering Jobs site
 - A Resend `full_access` API key with access to the AEJ newsletter broadcasts
+- A restricted, read-only Stripe API key
 
 ```bash
 uv sync --extra dev
@@ -56,6 +59,7 @@ export BIGQUERY_LOCATION=US
 export NETLIFY_ACCESS_TOKEN=<token>
 export NETLIFY_SITE_ID=1d2ea845-1f9e-4500-a8ac-49452e817418
 export RESEND_API_KEY=<key>
+export STRIPE_API_KEY=<restricted-read-only-key>
 
 uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs
 uv run python modal_app.py --repo-root /path/to/analytics-engineering-jobs --full-refresh
@@ -70,7 +74,7 @@ hard-deleted in v1.
 
 ## Modal
 
-The Modal app's single sync function combines `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials with `aej-dlt-netlify` for `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`, `aej-dlt-resend` for `RESEND_API_KEY`, and `aej-dlt-healthchecks` for `HEALTHCHECKS_PING_URL`.
+The Modal app's single sync function combines `aej-dlt-bq-sync` for GitHub source-repo access, BigQuery destination configuration, and BigQuery service account credentials with `aej-dlt-netlify` for `NETLIFY_ACCESS_TOKEN` and `NETLIFY_SITE_ID`, `aej-dlt-resend` for `RESEND_API_KEY`, `aej-dlt-stripe` for `STRIPE_API_KEY`, and `aej-dlt-healthchecks` for `HEALTHCHECKS_PING_URL`.
 
 ```bash
 uv run modal deploy modal_app.py
@@ -78,7 +82,7 @@ uv run modal run modal_app.py::sync
 uv run modal run modal_app.py::sync --full-refresh
 ```
 
-The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly before the production dbt schedule. It clones the source repository fresh so git-derived content timestamps are stable, then runs the repository-content, Netlify, and Resend pipelines.
+The scheduled function runs at 05:45, 11:45, 17:45, and 23:45 UTC, shortly before the production dbt schedule. It clones the source repository fresh so git-derived content timestamps are stable, then runs the repository-content, Netlify, Resend, and Stripe pipelines.
 
 ## Monitoring
 
@@ -100,6 +104,8 @@ Not covered: a run that succeeds while loading zero rows. That needs a row-count
 | `aej_dlt/sync_bigquery.py` | Builds the AEJ markdown resources and runs the BigQuery dlt pipeline. |
 | `aej_dlt/netlify_forms.py` | Configures the AEJ BigQuery pipeline around the reusable Netlify Forms source. |
 | `aej_dlt/resend_broadcasts.py` | Configures the AEJ BigQuery pipeline around the reusable Resend broadcasts source. |
+| `aej_dlt/stripe_data.py` | Configures the AEJ BigQuery pipeline around the vendored Stripe source. |
+| `aej_dlt/stripe_analytics/` | dlt verified Stripe source, vendored from `dlt-hub/verified-sources`. |
 | `aej_dlt/healthcheck.py` | Wraps the scheduled run in healthchecks.io start/success/fail pings. |
 | `modal_app.py` | Modal app, cron entry point, and local CLI wrapper. |
 | `tests/` | Pipeline, Modal entrypoint, packaging, and CI contract tests. |
